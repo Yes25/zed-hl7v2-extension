@@ -1,4 +1,4 @@
 name = "hl7_v2"
 grammar = "hl7v2"
 path_suffixes = ["hl7", "txt"]
-first_line_pattern = "MSH|*"
+# first_line_pattern = "MSH|.*"
