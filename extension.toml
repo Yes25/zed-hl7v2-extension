@@ -9,3 +9,7 @@ repository = "https://github.com/Yes25/zed-hl7v2-extension"
 [grammars.hl7v2]
 repository = "https://github.com/Yes25/tree-sitter-hl7v2"
 rev = "1b5b9f3a43912a56eec245c9b7b4990555907581"
+
+[language_servers.hl7_v2_lsp]
+name = "hl7_v2"
+languages = ["hl7_v2"]
