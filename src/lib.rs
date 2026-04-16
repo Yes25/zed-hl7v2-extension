@@ -1,12 +1,14 @@
-use crate::zed::LanguageServerId;
-use zed_extension_api as zed;
-use zed_extension_api::Result;
+use zed_extension_api::{self as zed, Architecture, DownloadedFileType, LanguageServerId, Os, Result};
 
-struct Hl7V2;
+struct Hl7v2 {
+    cached_binary_path: Option<String>,
+}
 
-impl zed::Extension for Hl7V2 {
+impl zed::Extension for Hl7v2 {
     fn new() -> Self {
-        Self
+        Self {
+            cached_binary_path: None,
+        }
     }
 
     fn language_server_command(
@@ -15,13 +17,45 @@ impl zed::Extension for Hl7V2 {
         _worktree: &zed::Worktree,
     ) -> Result<zed::Command> {
         Ok(zed::Command {
-            command: String::from(
-                "/Users/jessekruse/other_Code/rustProjects/hl7_v2_lsp/target/debug/hl7_v2_lsp",
-            ),
+            command: self.language_server_binary()?,
             args: Vec::new(),
             env: Vec::new(),
         })
     }
 }
 
-zed::register_extension!(Hl7V2);
+impl Hl7v2 {
+    fn language_server_binary(&mut self) -> Result<String> {
+        if let Some(path) = &self.cached_binary_path {
+            if std::fs::metadata(path).map_or(false, |m| m.is_file()) {
+                return Ok(path.clone());
+            }
+        }
+
+        let (os, arch) = zed::current_platform();
+
+        let binary_name = match (&os, &arch) {
+            (Os::Mac, Architecture::Aarch64) => "hl7_v2_lsp-aarch64-apple-darwin",
+            (Os::Mac, _) => "hl7_v2_lsp-x86_64-apple-darwin",
+            (Os::Linux, Architecture::Aarch64) => "hl7_v2_lsp-aarch64-unknown-linux-gnu",
+            (Os::Linux, _) => "hl7_v2_lsp-x86_64-unknown-linux-gnu",
+            (Os::Windows, _) => "hl7_v2_lsp-x86_64-pc-windows-msvc.exe",
+        };
+
+        let version = "0.1.0";
+        let url = format!(
+            "https://github.com/Yes25/hl7_v2_lsp/releases/download/v{version}/{binary_name}"
+        );
+        let binary_path = "bin/hl7_v2_lsp".to_string();
+
+        zed::download_file(&url, &binary_path, DownloadedFileType::Uncompressed)
+            .map_err(|e| format!("failed to download hl7_v2_lsp: {e}"))?;
+
+        zed::make_file_executable(&binary_path)?;
+
+        self.cached_binary_path = Some(binary_path.clone());
+        Ok(binary_path)
+    }
+}
+
+zed::register_extension!(Hl7v2);
