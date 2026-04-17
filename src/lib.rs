@@ -1,5 +1,5 @@
 use zed_extension_api::{
-    self as zed, Architecture, DownloadedFileType, LanguageServerId, Os, Result,
+    self as zed, Architecture, DownloadedFileType, LanguageServerId, LanguageServerInstallationStatus, Os, Result,
 };
 
 struct Hl7v2 {
@@ -15,11 +15,11 @@ impl zed::Extension for Hl7v2 {
 
     fn language_server_command(
         &mut self,
-        _language_server_id: &LanguageServerId,
+        language_server_id: &LanguageServerId,
         _worktree: &zed::Worktree,
     ) -> Result<zed::Command> {
         Ok(zed::Command {
-            command: self.language_server_binary()?,
+            command: self.language_server_binary(language_server_id)?,
             args: Vec::new(),
             env: Vec::new(),
         })
@@ -27,7 +27,7 @@ impl zed::Extension for Hl7v2 {
 }
 
 impl Hl7v2 {
-    fn language_server_binary(&mut self) -> Result<String> {
+    fn language_server_binary(&mut self, language_server_id: &LanguageServerId) -> Result<String> {
         if let Some(path) = &self.cached_binary_path {
             if std::fs::metadata(path).is_ok_and(|m| m.is_file()) {
                 return Ok(path.clone());
@@ -59,10 +59,26 @@ impl Hl7v2 {
         let binary_path = format!("{download_dir}/hl7_v2_lsp");
 
         if !std::fs::metadata(&binary_path).is_ok_and(|m| m.is_file()) {
+            zed::set_language_server_installation_status(
+                language_server_id,
+                &LanguageServerInstallationStatus::Downloading,
+            );
+
             zed::download_file(&url, &download_dir, file_type)
-                .map_err(|e| format!("failed to download hl7_v2_lsp: {e}"))?;
+                .map_err(|e| {
+                    zed::set_language_server_installation_status(
+                        language_server_id,
+                        &LanguageServerInstallationStatus::Failed(e.clone()),
+                    );
+                    format!("failed to download hl7_v2_lsp: {e}")
+                })?;
 
             zed::make_file_executable(&binary_path)?;
+
+            zed::set_language_server_installation_status(
+                language_server_id,
+                &LanguageServerInstallationStatus::None,
+            );
         }
 
         self.cached_binary_path = Some(binary_path.clone());
