@@ -1,5 +1,6 @@
 use zed_extension_api::{
-    self as zed, Architecture, DownloadedFileType, LanguageServerId, LanguageServerInstallationStatus, Os, Result,
+    self as zed, Architecture, DownloadedFileType, LanguageServerId,
+    LanguageServerInstallationStatus, Os, Result,
 };
 
 struct Hl7v2 {
@@ -44,7 +45,7 @@ impl Hl7v2 {
             (Os::Windows, _) => "hl7_v2_lsp-x86_64-pc-windows-msvc.zip",
         };
 
-        // If there was a new LSP release bumb the version here -> new download of current LSP should be triggered
+        // If there is a new LSP release, bumb the version here -> new download of current LSP should be triggered
         // for users then.
         let version = "0.1.0";
         let url = format!(
@@ -64,14 +65,13 @@ impl Hl7v2 {
                 &LanguageServerInstallationStatus::Downloading,
             );
 
-            zed::download_file(&url, &download_dir, file_type)
-                .map_err(|e| {
-                    zed::set_language_server_installation_status(
-                        language_server_id,
-                        &LanguageServerInstallationStatus::Failed(e.clone()),
-                    );
-                    format!("failed to download hl7_v2_lsp: {e}")
-                })?;
+            zed::download_file(&url, &download_dir, file_type).map_err(|e| {
+                zed::set_language_server_installation_status(
+                    language_server_id,
+                    &LanguageServerInstallationStatus::Failed(e.clone()),
+                );
+                format!("failed to download hl7_v2_lsp: {e}")
+            })?;
 
             zed::make_file_executable(&binary_path)?;
 

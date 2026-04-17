@@ -1,9 +1,9 @@
-id = "hl7v2"
-name = "hl7_v2 extension"
+id = "HL7v2"
+name = "HL7v2"
 version = "0.0.1"
 schema_version = 1
 authors = ["Jesse Kruse <jesse.kruse@outlook.com>"]
-description = "Support for hl7 v2 messages"
+description = "Support for HL7 v2 messages"
 repository = "https://github.com/Yes25/zed-hl7v2-extension"
 
 [grammars.hl7v2]
