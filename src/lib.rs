@@ -1,4 +1,6 @@
-use zed_extension_api::{self as zed, Architecture, DownloadedFileType, LanguageServerId, Os, Result};
+use zed_extension_api::{
+    self as zed, Architecture, DownloadedFileType, LanguageServerId, Os, Result,
+};
 
 struct Hl7v2 {
     cached_binary_path: Option<String>,
@@ -35,20 +37,26 @@ impl Hl7v2 {
         let (os, arch) = zed::current_platform();
 
         let binary_name = match (&os, &arch) {
-            (Os::Mac, Architecture::Aarch64) => "hl7_v2_lsp-aarch64-apple-darwin",
-            (Os::Mac, _) => "hl7_v2_lsp-x86_64-apple-darwin",
-            (Os::Linux, Architecture::Aarch64) => "hl7_v2_lsp-aarch64-unknown-linux-gnu",
-            (Os::Linux, _) => "hl7_v2_lsp-x86_64-unknown-linux-gnu",
-            (Os::Windows, _) => "hl7_v2_lsp-x86_64-pc-windows-msvc.exe",
+            (Os::Mac, Architecture::Aarch64) => "hl7_v2_lsp-aarch64-apple-darwin.tar.gz",
+            (Os::Mac, _) => "hl7_v2_lsp-x86_64-apple-darwin.tar.gz",
+            (Os::Linux, Architecture::Aarch64) => "hl7_v2_lsp-aarch64-unknown-linux-gnu.tar.gz",
+            (Os::Linux, _) => "hl7_v2_lsp-x86_64-unknown-linux-gnu.tar.gz",
+            (Os::Windows, _) => "hl7_v2_lsp-x86_64-pc-windows-msvc.zip",
         };
 
         let version = "0.1.0";
         let url = format!(
             "https://github.com/Yes25/hl7_v2_lsp/releases/download/v{version}/{binary_name}"
         );
-        let binary_path = "bin/hl7_v2_lsp".to_string();
+        let file_type = match os {
+            Os::Windows => DownloadedFileType::Zip,
+            _ => DownloadedFileType::GzipTar,
+        };
 
-        zed::download_file(&url, &binary_path, DownloadedFileType::Uncompressed)
+        let download_dir = "bin/hl7_v2_lsp".to_string();
+        let binary_path = format!("{download_dir}/hl7_v2_lsp");
+
+        zed::download_file(&url, &download_dir, file_type)
             .map_err(|e| format!("failed to download hl7_v2_lsp: {e}"))?;
 
         zed::make_file_executable(&binary_path)?;
