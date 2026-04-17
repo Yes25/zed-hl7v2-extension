@@ -29,7 +29,7 @@ impl zed::Extension for Hl7v2 {
 impl Hl7v2 {
     fn language_server_binary(&mut self) -> Result<String> {
         if let Some(path) = &self.cached_binary_path {
-            if std::fs::metadata(path).map_or(false, |m| m.is_file()) {
+            if std::fs::metadata(path).is_ok_and(|m| m.is_file()) {
                 return Ok(path.clone());
             }
         }
@@ -44,6 +44,8 @@ impl Hl7v2 {
             (Os::Windows, _) => "hl7_v2_lsp-x86_64-pc-windows-msvc.zip",
         };
 
+        // If there was a new LSP release bumb the version here -> new download of current LSP should be triggered
+        // for users then.
         let version = "0.1.0";
         let url = format!(
             "https://github.com/Yes25/hl7_v2_lsp/releases/download/v{version}/{binary_name}"
@@ -53,13 +55,15 @@ impl Hl7v2 {
             _ => DownloadedFileType::GzipTar,
         };
 
-        let download_dir = "bin/hl7_v2_lsp".to_string();
+        let download_dir = format!("bin/hl7_v2_lsp-{version}");
         let binary_path = format!("{download_dir}/hl7_v2_lsp");
 
-        zed::download_file(&url, &download_dir, file_type)
-            .map_err(|e| format!("failed to download hl7_v2_lsp: {e}"))?;
+        if !std::fs::metadata(&binary_path).is_ok_and(|m| m.is_file()) {
+            zed::download_file(&url, &download_dir, file_type)
+                .map_err(|e| format!("failed to download hl7_v2_lsp: {e}"))?;
 
-        zed::make_file_executable(&binary_path)?;
+            zed::make_file_executable(&binary_path)?;
+        }
 
         self.cached_binary_path = Some(binary_path.clone());
         Ok(binary_path)
