@@ -1,5 +1,5 @@
 use zed_extension_api::{
-    self as zed, Architecture, DownloadedFileType, LanguageServerId,
+    self as zed, github_release_by_tag_name, Architecture, DownloadedFileType, LanguageServerId,
     LanguageServerInstallationStatus, Os, Result,
 };
 
@@ -48,9 +48,17 @@ impl Hl7v2 {
         // If there is a new LSP release, bumb the version here -> new download of current LSP should be triggered
         // for users then.
         let version = "0.1.0";
-        let url = format!(
-            "https://github.com/Yes25/hl7_v2_lsp/releases/download/v{version}/{binary_name}"
-        );
+        let tag = format!("v{version}");
+
+        let release = github_release_by_tag_name("Yes25/hl7_v2_lsp", &tag)
+            .map_err(|e| format!("failed to find release {tag}: {e}"))?;
+        let asset = release
+            .assets
+            .iter()
+            .find(|a| a.name == binary_name)
+            .ok_or_else(|| format!("no asset named {binary_name} in release {tag}"))?;
+        let url = &asset.download_url;
+
         let file_type = match os {
             Os::Windows => DownloadedFileType::Zip,
             _ => DownloadedFileType::GzipTar,
@@ -65,7 +73,7 @@ impl Hl7v2 {
                 &LanguageServerInstallationStatus::Downloading,
             );
 
-            zed::download_file(&url, &download_dir, file_type).map_err(|e| {
+            zed::download_file(url, &download_dir, file_type).map_err(|e| {
                 zed::set_language_server_installation_status(
                     language_server_id,
                     &LanguageServerInstallationStatus::Failed(e.clone()),
