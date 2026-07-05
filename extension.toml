@@ -1,4 +1,4 @@
-id = "HL7v2"
+id = "hl7v2"
 name = "HL7v2"
 version = "0.0.1"
 schema_version = 1
